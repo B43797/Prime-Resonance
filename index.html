@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Prime-Resonance</title>
+  <meta name="description" content="A website exploring prime detection and Goldbach pairs through resonance symmetry." />
+  <style>
+    :root { --bg:#0b1020; --card:#11183a; --ink:#e9ecff; --muted:#9fb0ff; --accent:#7aa2ff; --ok:#35d49a; --bad:#ff6b6b; }
+    *{box-sizing:border-box} body{margin:0;background:linear-gradient(120deg,#0b1020,#0d1330 60%,#0b1020);
+      color:var(--ink);font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial}
+    .wrap{max-width:980px;margin:0 auto;padding:28px}
+    .hero{display:flex;gap:18px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+    h1{margin:0;font-size: clamp(28px, 4vw, 44px);letter-spacing:.4px}
+    .tag{color:var(--muted)}
+    .card{background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.02));
+      border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:18px}
+    .grid{display:grid;grid-template-columns:1fr;gap:18px}
+    @media(min-width:880px){ .grid{grid-template-columns:1fr 1fr} }
+    label{display:block;margin-bottom:6px;color:var(--muted);font-size:14px}
+    input[type=text]{width:100%;padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.12);
+      background:#0f1530;color:var(--ink);outline:none}
+    input[type=text]::placeholder{color:#7e88b8}
+    .row{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+    button{cursor:pointer;border:1px solid rgba(255,255,255,.15);background:linear-gradient(180deg,#1a2560,#121a48);
+      color:var(--ink);padding:10px 14px;border-radius:12px;font-weight:600}
+    button.secondary{background:transparent}
+    button:disabled{opacity:.5;cursor:not-allowed}
+    .out{margin-top:14px;min-height:2.2em;font-family:ui-monospace,Consolas,Monaco,monospace}
+    .pill{display:inline-block;padding:2px 10px;border-radius:999px;font-weight:700;margin-right:8px}
+    .ok{background:rgba(53,212,154,.12);border:1px solid rgba(53,212,154,.35);color:var(--ok)}
+    .bad{background:rgba(255,107,107,.12);border:1px solid rgba(255,107,107,.35);color:var(--bad)}
+    .muted{color:#b8c3ff}
+    .foot{margin-top:22px;color:#9fb0ff80;font-size:13px}
+    .hint{font-size:13px;color:#b8c3ff99}
+    .kbd{font-family:ui-monospace,Consolas,Monaco,monospace;background:#0e1430;border:1px solid rgba(255,255,255,.08);
+      padding:2px 6px;border-radius:6px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="hero">
+      <div>
+        <h1>Prime-Resonance</h1>
+        <div class="tag">A website exploring prime detection and Goldbach pairs through resonance symmetry.</div>
+      </div>
+    </div>
+
+    <div class="grid" style="margin-top:22px">
+      <!-- PRIME TEST -->
+      <div class="card">
+        <h2 style="margin:0 0 6px">1) Prime test</h2>
+        <div class="hint">Enter an integer n (supports very large <span class="kbd">BigInt</span>).</div>
+        <label for="n">n</label>
+        <input id="n" type="text" placeholder="e.g., 1000000007 or 12345678910111213141516" />
+        <div class="row">
+          <button id="btnPrime">Test primality</button>
+          <button id="btnFactor" class="secondary">Try small factor</button>
+        </div>
+        <div id="outPrime" class="out"></div>
+      </div>
+
+      <!-- GOLDBACH -->
+      <div class="card">
+        <h2 style="margin:0 0 6px">2) Goldbach pair</h2>
+        <div class="hint">Enter an even E, we find p + q = E with p, q primes (non-blocking search).</div>
+        <label for="E">E (even)</label>
+        <input id="E" type="text" placeholder="e.g., 1000000" />
+        <div class="row">
+          <button id="btnGoldbach">Find a pair</button>
+          <button id="btnStop" class="secondary">Stop</button>
+        </div>
+        <div id="outGoldbach" class="out"></div>
+      </div>
+    </div>
+
+    <div class="foot">
+      Tip: inputs accept underscores/spaces; we use deterministic Miller–Rabin for 64-bit and probabilistic bases for larger BigInt.
+    </div>
+  </div>
+
+<script>
+/* ---------- Utilities ---------- */
+const parseBigInt = (s) => {
+  if (!s) return null;
+  const t = s.replace(/[\s_,]/g,'').trim();
+  if (!/^[+-]?\d+$/.test(t)) return null;
+  return BigInt(t);
+};
+const toStr = (x) => x.toString();
+
+/* ---------- Modular arithmetic (BigInt) ---------- */
+const modAdd = (a,b,m)=>{ a%=m; b%=m; let r=a+b; return r>=m? r-m : r; };
+const modSub = (a,b,m)=>{ a%=m; b%=m; let r=a-b; return r<0n? r+m : r; };
+const modMul = (a,b,m)=>{ a%=m; b%=m; let r=0n; while(b>0n){ if(b&1n) r=(r+a)%m; a=(a+a)%m; b>>=1n; } return r; };
+const modPow = (a,e,m)=>{ a%=m; let r=1n; while(e>0n){ if(e&1n) r=modMul(r,a,m); a=modMul(a,a,m); e>>=1n; } return r; };
+
+/* ---------- gcd / small primes ---------- */
+const gcd = (a,b)=>{ a=a<0n?-a:a; b=b<0n?-b:b; while(b){ const t=a%b; a=b; b=t; } return a; };
+const SMALL_PRIMES = (()=>{ // first primes up to 1000
+  const arr=[]; const lim=7919; const sieve=new Uint8Array(lim+1); sieve.fill(1); sieve[0]=sieve[1]=0;
+  for(let p=2;p*p<=lim;p++) if(sieve[p]) for(let q=p*p;q<=lim;q+=p) sieve[q]=0;
+  for(let i=2;i<=lim;i++) if(sieve[i]) arr.push(BigInt(i));
+  return arr;
+})();
+
+/* ---------- Miller–Rabin (BigInt) ---------- */
+function isProbablePrime(n){
+  n = BigInt(n);
+  if (n < 2n) return false;
+  for (const p of [2n,3n,5n,7n,11n,13n,17n,19n,23n,29n,31n,37n]) {
+    if (n === p) return true;
+    if (n % p === 0n) return false;
+  }
+  // write n-1 = d * 2^s
+  let d = n - 1n, s = 0n;
+  while ((d & 1n) === 0n) { d >>= 1n; s++; }
+
+  // Deterministic bases for 64-bit, probabilistic otherwise
+  const bases = (n < 2n**64n)
+    ? [2n, 325n, 9375n, 28178n, 450775n, 9780504n, 1795265022n] // deterministic for < 2^64
+    : [2n,3n,5n,7n,11n,13n,17n,19n,23n]; // strong probabilistic set
+
+  const trial = (a)=>{
+    if (a % n === 0n) return true;
+    let x = modPow(a, d, n);
+    if (x === 1n || x === n-1n) return true;
+    for (let r=1n; r<s; r++) {
+      x = modMul(x, x, n);
+      if (x === n-1n) return true;
+    }
+    return false;
+  };
+  for (const a of bases) if (!trial(a)) return false;
+  return true;
+}
+
+/* ---------- small factor (trial division up to 1e6-ish) ---------- */
+function smallFactor(n){
+  n = n<0n? -n : n;
+  for (const p of SMALL_PRIMES){
+    if (p*p > n) break;
+    if (n % p === 0n) return p;
+  }
+  return null;
+}
+
+/* ---------- Goldbach finder (chunked) ---------- */
+let stopFlag = false;
+function goldbachFind(E, onUpdate){
+  stopFlag = false;
+  if (E % 2n !== 0n || E <= 4n) { onUpdate({err:"E must be even and > 4."}); return; }
+  const m = E/2n;
+
+  // simple congruence filter for mod 3 (cheap & effective)
+  const tAdmissible = (t) => {
+    if (E % 3n === 0n) return (t % 3n) !== 0n; // avoid multiples of 3
+    return (t % 3n) === 0n;                    // prefer multiples of 3
+  };
+
+  let t = 1n;
+  const CHUNK = 2000; // work per frame
+  (function loop(){
+    if (stopFlag) return;
+    let count = 0;
+    while (count < CHUNK){
+      if (tAdmissible(t)){
+        const p = m - t, q = m + t;
+        if (p > 1n && isProbablePrime(p) && isProbablePrime(q)){
+          onUpdate({p, q, t});
+          return;
+        }
+      }
+      t += 1n; count++;
+    }
+    onUpdate({scan: t});
+    setTimeout(loop, 0); // yield to UI
+  })();
+}
+function goldbachStop(){ stopFlag = true; }
+
+/* ---------- Wire up UI ---------- */
+const $ = (id)=>document.getElementById(id);
+
+// PRIME TEST
+$("btnPrime").onclick = ()=>{
+  const n = parseBigInt($("n").value);
+  const out = $("outPrime");
+  if (n === null){ out.innerHTML = `<span class="pill bad">ERR</span> Enter an integer.`; return; }
+  const prime = isProbablePrime(n);
+  out.innerHTML = prime
+    ? `<span class="pill ok">PRIME</span> ${toStr(n)}`
+    : `<span class="pill bad">COMPOSITE</span> ${toStr(n)} <span class="muted">(probabilistic MR)</span>`;
+};
+
+$("btnFactor").onclick = ()=>{
+  const n = parseBigInt($("n").value);
+  const out = $("outPrime");
+  if (n === null){ out.innerHTML = `<span class="pill bad">ERR</span> Enter an integer.`; return; }
+  if (isProbablePrime(n)){ out.innerHTML = `<span class="pill ok">PRIME</span> No small factor.`; return; }
+  const f = smallFactor(n);
+  out.innerHTML = f
+    ? `<span class="pill bad">FACTOR</span> small factor ≈ ${toStr(f)}`
+    : `<span class="pill bad">NO SMALL FACTOR</span> Try ECM/MPQS offline.`;
+};
+
+// GOLDBACH
+$("btnGoldbach").onclick = ()=>{
+  const E = parseBigInt($("E").value);
+  const out = $("outGoldbach");
+  if (E === null){ out.innerHTML = `<span class="pill bad">ERR</span> Enter an even integer.`; return; }
+  out.textContent = "Searching… (chunked)";
+  goldbachFind(E, ({p,q,t,err,scan})=>{
+    if (err){ out.innerHTML = `<span class="pill bad">ERR</span> ${err}`; return; }
+    if (p && q){
+      out.innerHTML = `<span class="pill ok">FOUND</span> E = ${toStr(E)} = <b>${toStr(p)}</b> + <b>${toStr(q)}</b> (t = ${toStr(t)})`;
+    } else if (scan){
+      out.textContent = `Scanning t up to ${toStr(scan)}…`;
+    }
+  });
+};
+$("btnStop").onclick = ()=>{ goldbachStop(); $("outGoldbach").textContent = "Stopped."; };
+
+</script>
+</body>
+</html>
