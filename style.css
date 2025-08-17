@@ -1,0 +1,124 @@
+/* ----------------------------
+   Prime-Resonance — style.css
+   ---------------------------- */
+
+/* Reset & base */
+body {
+  margin: 0;
+  font-family: "Segoe UI", Tahoma, sans-serif;
+  background: #fdfdfd;
+  color: #222;
+  line-height: 1.6;
+}
+
+/* Layout */
+.container {
+  max-width: 800px;
+  margin: 2rem auto;
+  padding: 1.5rem;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+}
+
+/* Title */
+h1 {
+  text-align: center;
+  color: #1b5e20; /* deep green */
+  margin-bottom: 1rem;
+}
+
+/* Section */
+.section {
+  margin: 1.5rem 0;
+  padding: 1rem;
+  border-left: 4px solid #c8e6c9; /* light green accent */
+  background: #fafafa;
+  border-radius: 8px;
+}
+
+/* Labels & Inputs */
+label {
+  display: block;
+  font-weight: bold;
+  margin-bottom: 0.25rem;
+}
+
+input[type="text"] {
+  width: 100%;
+  max-width: 500px;
+  padding: 0.6rem;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  font-size: 1rem;
+}
+
+/* Buttons */
+button {
+  margin-top: 0.6rem;
+  margin-right: 0.5rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+button:hover { opacity: 0.9; }
+
+#btnPrime, #btnFactor {
+  background: #4caf50; /* green */
+  color: #fff;
+}
+
+#btnGoldbach {
+  background: #f9a825; /* amber/yellow-gold */
+  color: #fff;
+}
+
+#btnStop {
+  background: #d32f2f; /* red */
+  color: #fff;
+}
+
+/* Outputs */
+.output {
+  margin-top: 0.8rem;
+  padding: 0.75rem;
+  border-radius: 6px;
+  background: #f1f8e9; /* very light green */
+  font-family: Consolas, monospace;
+  min-height: 1.2em;
+}
+
+/* Pills (status badges) */
+.pill {
+  display: inline-block;
+  padding: 0.25rem 0.6rem;
+  margin-right: 0.4rem;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: bold;
+  color: #fff;
+}
+
+.pill.ok   { background: #388e3c; }   /* green */
+.pill.bad  { background: #e53935; }   /* red */
+.pill.info { background: #1976d2; }   /* blue */
+.pill.warn { background: #f9a825; }   /* yellow */
+
+/* Muted small text */
+.muted {
+  color: #777;
+  font-size: 0.85rem;
+}
+
+/* Footer */
+footer {
+  text-align: center;
+  margin-top: 2rem;
+  font-size: 0.85rem;
+  color: #555;
+}
